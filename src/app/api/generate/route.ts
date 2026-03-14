@@ -36,15 +36,13 @@ export async function POST(request: NextRequest) {
         content: [
           { type: 'text', text: prompt },
           ...images.map((image: any) => ({
-            type: 'image',
-            imageUrl: {
-              url: `data:${image.mimeType};base64,${image.data}`,
-              detail: 'high' as const
-            }
+            type: 'image' as const,
+            image: `data:${image.mimeType};base64,${image.data}`,
+            mimeType: image.mimeType
           }))
         ]
       }],
-      maxTokens: 200,
+      maxOutputTokens: 200,
       temperature: 0.7,
     })
 
