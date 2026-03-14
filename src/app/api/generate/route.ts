@@ -1,16 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { generateText } from 'ai'
+import { xai } from '@ai-sdk/xai'
+
+export const runtime = 'edge' // optional, for faster
 
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData()
     const files = formData.getAll('files') as File[]
 
-    // Mock Grok summary - replace with real xAI call
-    // TODO: Use @ai-sdk/xai with process.env.XAI_API_KEY
-    const mockSummary = 'Today, the class had a blast painting rainbows and sharing stories! Everyone showed great creativity and teamwork. 😊🌈'
+    if (files.length === 0) {
+      return NextResponse.json({ error: 'No files uploaded' }, { status: 400 })
+    }
 
-    return NextResponse.json({ summary: mockSummary })
+    const images = await Promise.all(
+      files.map(async (file) => {
+        const bytes = await file.arrayBuffer()
+        const buffer = Buffer.from(bytes)
+        const base64 = buffer.toString('base64')
+        const mimeType = file.type || 'image/jpeg'
+        return {
+          type: 'base64' as const,
+          data: base64,
+          mimeType
+        }
+      })
+    )
+
+    const prompt = `You are a helpful teaching assistant. Analyze these classroom photos and generate a short, positive, engaging summary (2-4 sentences) for parents about today's activities. Focus on creativity, teamwork, learning moments, and fun. Make it warm and exciting. End with an emoji.`
+
+    const { text } = await generateText({
+      model: xai('grok-vision-beta'), // Use vision-capable model
+      prompt,
+      maxTokens: 200,
+      temperature: 0.7,
+      images // Pass images array
+    })
+
+    return NextResponse.json({ summary: text.trim() })
   } catch (error) {
+    console.error('Generate error:', error)
     return NextResponse.json({ error: 'Failed to generate summary' }, { status: 500 })
   }
 }
