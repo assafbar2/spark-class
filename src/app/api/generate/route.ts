@@ -30,11 +30,22 @@ export async function POST(request: NextRequest) {
     const prompt = `You are a helpful teaching assistant. Analyze these classroom photos and generate a short, positive, engaging summary (2-4 sentences) for parents about today's activities. Focus on creativity, teamwork, learning moments, and fun. Make it warm and exciting. End with an emoji.`
 
     const { text } = await generateText({
-      model: xai('grok-vision-beta'), // Use vision-capable model
-      prompt,
+      model: xai('grok-vision-beta'),
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'text', text: prompt },
+          ...images.map((image: any) => ({
+            type: 'image',
+            imageUrl: {
+              url: `data:${image.mimeType};base64,${image.data}`,
+              detail: 'high' as const
+            }
+          }))
+        ]
+      }],
       maxTokens: 200,
       temperature: 0.7,
-      images // Pass images array
     })
 
     return NextResponse.json({ summary: text.trim() })
